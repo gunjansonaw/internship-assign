@@ -1,19 +1,17 @@
 package main
 
 import (
-	"fmt"
-	"holiday-calendar/config"
-	"holiday-calendar/routes"
-
-	"github.com/gin-gonic/gin"
+	"log"
+	"net/http"
+	"github.com/gorilla/handlers"
+	"backend/routes"
 )
 
 func main() {
-	router := gin.Default()
-	config.ConnectDatabase()
+	// Set up routes
+	routes.SetHolidayRoutes()
 
-	routes.RegisterHolidayRoutes(router)
-
-	fmt.Println("Server running on port 8080")
-	router.Run(":8080")
+	// Enable CORS
+	log.Println("Server is running on port 5000")
+	log.Fatal(http.ListenAndServe(":5000", handlers.CORS()(http.DefaultServeMux)))
 }
