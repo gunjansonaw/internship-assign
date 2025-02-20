@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api/holidays";
+const API_URL = "http://localhost:5000/api/holiday";
 
 // Fetch holidays based on month and year
 export const getHolidays = async (month, year) => {

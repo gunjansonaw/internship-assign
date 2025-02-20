@@ -15,7 +15,9 @@ const Calendar = () => {
   const fetchHolidays = useCallback(async () => {
     try {
       const res = await getHolidays(currentDate.getMonth() + 1, currentDate.getFullYear());
-      setHolidays(res); // Update holidays state with fetched data
+      console.log(res);
+     
+      setHolidays(res || []);
     } catch (error) {
       console.error("Error fetching holidays", error);
     }
@@ -73,6 +75,7 @@ const Calendar = () => {
 
         {Array.from({ length: daysInMonth }, (_, i) => {
           const day = i + 1;
+          console.log(holidays)
           const holiday = holidays.find((h) => h.date === day);
 
           return (

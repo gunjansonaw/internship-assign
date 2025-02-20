@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"github.com/gorilla/mux"
 )
 
 type Holiday struct {
@@ -75,25 +76,29 @@ func AddHoliday(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(holiday)
 }
 
-// Handle DELETE request to remove a holiday
 func DeleteHoliday(w http.ResponseWriter, r *http.Request) {
-	// Extract the holiday ID from the URL
-	idStr := r.URL.Path[len("/api/holidays/"):]
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "Invalid holiday ID", http.StatusBadRequest)
-		return
-	}
+    // Extract the holiday ID from the URL path variables
+    vars := mux.Vars(r)
+    idStr, ok := vars["id"]
+    if !ok {
+        http.Error(w, "Holiday ID is required", http.StatusBadRequest)
+        return
+    }
 
-	// Delete the holiday
-	_, exists := holidays[id]
-	if !exists {
-		http.Error(w, "Holiday not found", http.StatusNotFound)
-		return
-	}
+    // Convert the ID to an integer
+    id, err := strconv.Atoi(idStr)
+    if err != nil {
+        http.Error(w, "Invalid holiday ID", http.StatusBadRequest)
+        return
+    }
 
-	delete(holidays, id)
+    // Delete the holiday if it exists
+    if _, exists := holidays[id]; !exists {
+        http.Error(w, "Holiday not found", http.StatusNotFound)
+        return
+    }
+    delete(holidays, id)
 
-	// Send a success response
-	w.WriteHeader(http.StatusNoContent)
+    // Send a success response
+    w.WriteHeader(http.StatusNoContent)
 }
