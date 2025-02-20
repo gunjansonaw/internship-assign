@@ -15,7 +15,7 @@ const Calendar = () => {
   const fetchHolidays = useCallback(async () => {
     try {
       const res = await getHolidays(currentDate.getMonth() + 1, currentDate.getFullYear());
-      console.log(res);
+    //   console.log(res);
      
       setHolidays(res || []);
     } catch (error) {
@@ -75,9 +75,9 @@ const Calendar = () => {
 
         {Array.from({ length: daysInMonth }, (_, i) => {
           const day = i + 1;
-          console.log(holidays)
+        //   console.log(holidays)
           const holiday = holidays.find((h) => h.date === day);
-
+          console.log(holiday)
           return (
             <div key={day} className="calendar-cell" onClick={() => setModalDate(day)}>
               <span>{day}</span>
