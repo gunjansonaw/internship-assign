@@ -1,10 +1,11 @@
 package models
 
-// Holiday represents a holiday with its ID, name, date, month, and year
+import "go.mongodb.org/mongo-driver/bson/primitive"
+
 type Holiday struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
-	Date int    `json:"date"` // Date in the month
-	Month int   `json:"month"`
-	Year  int   `json:"year"`
+	ID    primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Name  string             `bson:"name" json:"name"`
+	Date  int                `bson:"date" json:"date"` // Date in the month
+	Month int                `bson:"month" json:"month"`
+	Year  int                `bson:"year" json:"year"`
 }

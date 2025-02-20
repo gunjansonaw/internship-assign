@@ -4,12 +4,16 @@ import (
 	"log"
 	"net/http"
 
+	"backend/routes"
+	"backend/utils"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"backend/routes"
 )
 
 func main() {
+	// Connect to MongoDB
+	utils.ConnectDB()
+
 	// Initialize a new mux router
 	router := mux.NewRouter()
 
@@ -18,12 +22,12 @@ func main() {
 
 	// Define allowed CORS settings
 	corsHandler := handlers.CORS(
-		handlers.AllowedOrigins([]string{"http://localhost:5173"}), // Allow frontend origin
-		handlers.AllowedMethods([]string{"GET", "POST", "DELETE", "OPTIONS"}), // Allowed HTTP methods
-		handlers.AllowedHeaders([]string{"Content-Type", "Authorization"}), // Allowed headers
+		handlers.AllowedOrigins([]string{"http://localhost:5173"}),
+		handlers.AllowedMethods([]string{"GET", "POST", "DELETE", "OPTIONS"}),
+		handlers.AllowedHeaders([]string{"Content-Type", "Authorization"}),
 	)(router)
 
-	// Start the server with CORS enabled
+	// Start the server
 	log.Println("Server is running on port 5000")
 	log.Fatal(http.ListenAndServe(":5000", corsHandler))
 }

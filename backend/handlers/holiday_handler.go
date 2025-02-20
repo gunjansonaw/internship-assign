@@ -1,35 +1,29 @@
 package handlers
 
 import (
+	"backend/models"
+	"backend/utils"
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"time"
+
 	"github.com/gorilla/mux"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
-
-type Holiday struct {
-	ID   int    `json:"id"`
-	Date int    `json:"date"`
-	Name string `json:"name"`
-	Year int    `json:"year"`
-	Month int   `json:"month"`
-}
-
-// In-memory data store
-var holidays = make(map[int]Holiday)
-var nextID = 1
 
 // Handle GET request to fetch holidays by month and year
 func GetHolidays(w http.ResponseWriter, r *http.Request) {
-	// Extract month and year from query parameters
 	month := r.URL.Query().Get("month")
 	year := r.URL.Query().Get("year")
+
 	if month == "" || year == "" {
 		http.Error(w, "Month and Year are required", http.StatusBadRequest)
 		return
 	}
 
-	// Parse month and year as integers
 	monthInt, err := strconv.Atoi(month)
 	if err != nil {
 		http.Error(w, "Invalid month", http.StatusBadRequest)
@@ -42,63 +36,77 @@ func GetHolidays(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Collect holidays for the specified month and year
-	var result []Holiday
-	for _, holiday := range holidays {
-		if holiday.Month == monthInt && holiday.Year == yearInt {
-			result = append(result, holiday)
-		}
+	collection := utils.GetCollection("holidays")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	filter := bson.M{"month": monthInt, "year": yearInt}
+	cursor, err := collection.Find(ctx, filter)
+	if err != nil {
+		http.Error(w, "Error fetching data", http.StatusInternalServerError)
+		return
 	}
 
-	// Send response
+	var holidays []models.Holiday
+	if err := cursor.All(ctx, &holidays); err != nil {
+		http.Error(w, "Error parsing data", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	json.NewEncoder(w).Encode(holidays)
 }
 
 // Handle POST request to add a holiday
 func AddHoliday(w http.ResponseWriter, r *http.Request) {
-	// Parse the holiday data from the request body
-	var holiday Holiday
+	var holiday models.Holiday
 	err := json.NewDecoder(r.Body).Decode(&holiday)
 	if err != nil {
 		http.Error(w, "Invalid holiday data", http.StatusBadRequest)
 		return
 	}
 
-	// Assign an ID and store the holiday
-	holiday.ID = nextID
-	nextID++
-	holidays[holiday.ID] = holiday
+	holiday.ID = primitive.NewObjectID()
 
-	// Respond with the added holiday
+	collection := utils.GetCollection("holidays")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err = collection.InsertOne(ctx, holiday)
+	if err != nil {
+		http.Error(w, "Failed to insert holiday", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(holiday)
 }
 
+// Handle DELETE request to remove a holiday
 func DeleteHoliday(w http.ResponseWriter, r *http.Request) {
-    // Extract the holiday ID from the URL path variables
-    vars := mux.Vars(r)
-    idStr, ok := vars["id"]
-    if !ok {
-        http.Error(w, "Holiday ID is required", http.StatusBadRequest)
-        return
-    }
+	vars := mux.Vars(r)
+	idStr, ok := vars["id"]
+	if !ok {
+		http.Error(w, "Holiday ID is required", http.StatusBadRequest)
+		return
+	}
 
-    // Convert the ID to an integer
-    id, err := strconv.Atoi(idStr)
-    if err != nil {
-        http.Error(w, "Invalid holiday ID", http.StatusBadRequest)
-        return
-    }
+	objID, err := primitive.ObjectIDFromHex(idStr)
+	if err != nil {
+		http.Error(w, "Invalid holiday ID", http.StatusBadRequest)
+		return
+	}
 
-    // Delete the holiday if it exists
-    if _, exists := holidays[id]; !exists {
-        http.Error(w, "Holiday not found", http.StatusNotFound)
-        return
-    }
-    delete(holidays, id)
+	collection := utils.GetCollection("holidays")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-    // Send a success response
-    w.WriteHeader(http.StatusNoContent)
+	result, err := collection.DeleteOne(ctx, bson.M{"_id": objID})
+	if err != nil || result.DeletedCount == 0 {
+		http.Error(w, "Holiday not found", http.StatusNotFound)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
